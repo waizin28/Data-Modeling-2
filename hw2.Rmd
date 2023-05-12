@@ -1,0 +1,284 @@
+---
+title: "Homework 2"
+author: Wai Zin Linn
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+```
+
+## Problem 1 <small>(10pts)</small>
+
+According to a recent U.N. report, the warmest eight years on record have all been since 2015. That is, the years 2015, 2016, 2017, 2018, 2019, 2020, 2021, and 2022 were the eight warmest years (though not necessarily in that order) since record-keeping began circa 1850. Let's simplify things a bit, and suppose that records exist just for the past 12 years, with the first recorded temperature in 2011 and with 2022 being the last year.
+
+Suppose the average temperatures for the past 12 years were random with no trend. Then we would expect that any of the 12 years on record is equally likely to be the hottest on record, any of the remaining 11 years on record is equally likely to be the second hottest on record, etc. Use Monte Carlo to estimate the probability that, under this model in which all temperature orderings are equally likely, the eight warmest years on record all occurred in the last eight years 2015-2022.
+
+*Hints*:
+
+ - A completely equivalent question asks, if we order the numbers 1 to 10 completely at random, what is the probability that the numbers $\{1, 2, 3, 4, 5, 6, 7 \}$ appear in the first seven entries in the ordering?
+Bear in mind that this *does not* require that 1 appear first in the ordering, 2 second, etc., only that the first seven numbers appear in the first seven "entries" of our ordering.
+ - If `n` is a positive integer, `sample( n, n, replace=FALSE )` will give a random ordering of the numbers `1` through `n`  - Suppose you have an R vector `v` of length `n`, consisting of each the integers 1 through `n`, in some order. What is a good way to check that the numbers 1,2,3,4,5,6,7 all appear in the first seven elements of `v`? One (rather naive) approach would be to just check, for each $i \in \{ 1,2,3,4,5,6,7 \}$, that one of the first seven elements of `v` is equal to $i$, but this would be rather slow. Convince yourself that an equivalent approach is to check if the first seven elements of `v` sum to `sum(1:7)`.
+
+Use at least 10,000 Monte Carlo iterates to produce your estimate. If you take the hints above into account correctly, you should be able to run this many Monte Carlo iterates with little or no trouble. Otherwise, your experiment may require a few minutes to run. If things are taking an especially long time, feel free to reduce that 10,000 figure down to 1000.
+
+```{r}
+gen_year <- function(n){
+  return(sample((2011:2022),size=n,replace=FALSE));
+}
+
+NMC <- 10000
+n <- 8
+NTRUE <- 0
+ans <- sum(2015:2022)
+for(i in 1:NMC){
+  if(sum(gen_year(n)) == ans) {
+    NTRUE <- NTRUE + 1;
+  }
+}
+
+warmest_year_est = NTRUE/NMC
+warmest_year_est
+```
+
+
+
+## Problem 2 <small>(10pts)</small>
+
+Let the following vector represent a deck of cards (for simplicity, we're ignoring suits (symbols) for now and only focusing on the ranks (numbers)).
+
+```{r}
+deck = rep(1:13,each=4)
+deck
+```
+
+Suppose you draw 5 cards. Using MC, estimate the probability of the following outcomes. Try to run as many iterations as you can comfortably run so you can get a better estimate of each. If you have run as many iterations as you can and you still do not observe a single occurrence of an event, you may state the probability as less than 1/M, where M is the number of iterations you used.
+
+1. A hand with all 5 cards having different ranks
+2. A hand with no cards that are 10 or higher
+3. A hand with two pairs (e.g. 3,3,7,7,9)
+4. A hand with a pair and a triple (e.g. 5,5,5,2,2)
+5. A hand with a four of a kind (e.g. 8,8,8,8,10)
+
+```{r}
+gen_card <- function(n){
+  return(sample(deck,size=n,replace=FALSE));
+}
+
+NMC <- 10000
+NTRUE <- 0
+for(i in 1:NMC){
+  if(length(unique(gen_card(5))) == 5){
+    NTRUE = NTRUE + 1;
+  }
+}
+
+NTRUE1 <- 0
+for(i in 1:NMC){
+  if(all(gen_card(5)<10)){
+    NTRUE1 = NTRUE1 + 1;
+  }
+}
+
+NTRUE2 <- 0
+for(i in 1:NMC){
+  if(sum(table(gen_card(5)) == 2) == 2){
+    NTRUE2 = NTRUE2 + 1;
+  }
+}
+
+NTRUE3 <- 0
+for(i in 1:NMC){
+  cards = gen_card(5);
+  if((sum(table(cards) == 2) == 1) & (sum(table(cards) == 3) == 1)){
+    NTRUE3 = NTRUE3 + 1;
+  }
+}
+
+NTRUE4 <- 0
+for(i in 1:NMC){
+  if(any(table(gen_card(5)) == 4)){
+    NTRUE4 = NTRUE4 + 1;
+  }
+}
+
+fiveUniqueRank = NTRUE/NMC
+fiveUniqueRank
+
+tenHigher = NTRUE1/NMC
+tenHigher
+
+twoPairs = NTRUE2/NMC
+twoPairs
+
+pairAndTriple = NTRUE3/NMC
+pairAndTriple
+
+fourAndKind = NTRUE4/NMC
+fourAndKind
+```
+1. 0.5141
+2. 0.1471
+3. 0.0481
+4. 0.0011
+5. Less than 1/10000.
+
+## Problem 3: Permutation testing <small>(10pts)</small>
+
+Below are data arising from a (fictionalized) data source: the number of defects per day on an assembly line before and after installation of a new torque converter (this is a totally fictional "part" of an assembly line--just treat these as "control" and "treatment" groups, respectively).
+
+```{r}
+before = c(4,5,6,3,6,3,4,5,5,3,4,6,4,6,3,4,2,2,0,7,5,8,4,5,1,4,4,8,2,3)
+after  = c(3,2,4,3,7,5,5,2,2,4,5,2,2,6,1,5,6,3,2,3,7,3,4,5,4,2,2,6,7,8)
+```
+
+a) Use a permutation test to assess the claim that installation of the new part changed the prevalence of defects. That is, test the null hypothesis that the distribution of defects is the same before and after installation of the new part. Produce a p-value and interpret the results of your test in context.
+
+```{r}
+obs_diff <- mean(before) - mean(after)
+all_data <- c(before, after)
+n_permutations <- 10000
+perm_diffs <- numeric(n_permutations)
+for (i in 1:n_permutations) {
+  perm <- sample(all_data)
+  perm_diffs[i] <- mean(perm[1:length(before)]) - mean(perm[(length(before)+1):length(all_data)])
+}
+p_value <- mean(abs(perm_diffs) >= abs(obs_diff))
+p_value
+```
+
+The p-value is 0.7352, which is greater than significance level of 0.05. Therefore, we do not have strong evidence to reject the null hypothesis that the distribution of defects is the same before and after installation of the new part. In other words, we cannot conclude that the installation of the new part changed the prevalence of defects.
+
+b) Explain, briefly, what you did above and why. Imagine that you are trying to explain to someone who isn't well versed in statistics what exactly you are doing in a permutation test. Explain your conclusion based on your test above. Three to five sentences should be plenty, but you are free to write as much or as little as you think is necessary to clearly explain your findings.
+
+In a permutation test, we would want to choose a null hypothesis as no significant difference between two dataset and we test if we should reject or accept null by randomly permuting the data between the two sets and calculating a test statistic for each permutation. In this case, we used difference of mean between two randomly shuffled data for the test statics. Afterward, we compares the observed test statistic to the distribution of test statistics obtained from the permutations. If the observed test statistic falls in the tails of the distribution (it is extreme), then the null hypothesis is rejected in favor of the alternative hypothesis that there is a significant difference between the two sets of data. This is clearly the case for our situation because we got the p_value of 0.7352 which is greater than significance level of 0.05. So we can conclude that we do not have strong evidence to reject the null hypothesis that the distribution of defects is the same before and after installation of the new part.
+
+## Problem 4: Memes <small>(10pts)</small>
+
+The following question comes from Karl Rohe, who developed the very first version of this class. This question has been reproduced in nearly the exact original (very amusing) wording.
+
+> **Memes, part 1** (Please forgive me. I drank too much coffee before writing this question.)
+> 
+> In class thus far, there have been 416 comments posted in the bbcollaborate chat during class. An expert panel has judged 47 of these comments to be memes. The big-bad-deans say that they are concerned "if there is evidence that more than 10% of comments are memes." So, this looks like bad news, 47/416>10%.
+> 
+> Karl pleads with the deans: "Please, oh please, you big-bad-deans... Memeing is totally random." (I don't actually know what this notion of "random" means, but please just run with it for this question.) Then, along comes you, a trusty and dedicated 340 student. You say that "because we have only observed 416 comments, we don't really know what the 'true proportion' of memes."
+> 
+> 4a: What would be a good distribution for the number of memes?
+> 
+> 4b: Using your distribution from 4a, test the null hypothesis that the 'true proportion' is actually 10%. It's all up to you now... report the p-value.
+
+Hints:
+
+- For 4a, there should be a (hopefully) fairly intuitive choice of random variable that makes sense here. Look at your list of random variables and ask yourself which of these makes the most sense.
+- For 4b, you can use the built-in function in R to simulate observations according to your null. Remember that you **always simulate *assuming* the null hypothesis**. Make sure your choice of the necessary parameter(s) reflects this assumption.
+
+4a. A good distribution for the number of memes would be the binomial distribution. This would allow me to model the number of successes (memes) in a fixed number of independent trials (comments), where each trial has the same probability of a comment being a meme. So we would have parameters n = 416 (total number of comments) and p = 0.1 (null hypothesis proportion of memes).
+
+```{r}
+n <- 416
+x <- 47
+p <- 0.1
+p_val = binom.test(x,n,p,alternative="greater")$p.value
+p_val
+```
+4b. 0.2093049. Since the p-value is greater than 0.05, supporting the conclusion that there is not enough evidence that the true proportion of memes is greater than 10%.
+
+## Problem 5: Testing coin flips <small>(10 pts)</small>
+
+In the six sequences below, only one of them is actually **randomly generated from independent flips of a fair coin**. Use a combination of everything you know (common sense, Monte Carlo, hypothesis testing, etc.) to identify which is actually random and explain your reasoning.
+
+(For full points, conduct a formal test and report a p-value for each sequence. You may use a combination of multiple tests to arrive at your answer. If you cannot compute a p-value for each sequence, you can still earn a significant amount of partial credit by carefully explaining your reasoning and response as best as you can.)
+
+My advice is **be creative** with the test statistics you come up with to eliminate each sequence! Think of some way of summarizing a sequence of flips that might be useful for comparing against a simulated sequence of random flips. After you come up with an idea for a statistic, remember to run it on many MC generated completely random flips to produce a distribution under the null, which you can then compare with your data to get a p-value. Also, be careful of now you define "more extreme" than the data.
+
+(2 bonus points available if you can find a single test that is powerful enough to reject all the fake sequences together in one step. Yes, at least one such possible test exists.)
+
+```{r}
+flips1 = "HTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHT"
+
+flips2 = "HHHTHTTTHHTHHTHHHTTTTHTHTHHTTHTHHHTHHTHTTTHTHHHTHTTTHTHTHHTHTHTTHTHHTHTHTTTHTHHHTHTHTTHTHTHHTHTHTHHHTHTTTHTHHTHTHTHHTTTHTHHTHHTTTTHTHTHHHTHTTHTHHTHTHTTHTHHTHTHHHTHHHTHTTTHTTHTTTHTHHHTHTHTTHTHHTHHTHTTT"
+
+flips3 = "HHTHTHTTTHTHHHTHHTTTHTHHTHTTTHTHTHHTHTHTTHTHHHHHHTTTHTHTHHTHTTTHTHHTHTHTTTHTHHHTTHTTTHTHTHHHHTHTTHHTTTTTHTHHHTHTHTTTTTHHHTHHTHHTHHHTTTTHTHTHHHTHHTTTTTHTHHHTHTHTHTTTHTHHHTHTHTHTTHTHHTHTHTHTTTTHTHHHTHTH"
+
+flips4 = "HTHHHHHHHTHTTHHTTHHHTHTHTTTHHTHHHTHHTTHTTTTTTTTTHTHHTTTTTHTHTHTHHTTHTTHTTTTTHHHTHTTTHTHTHHHTHTTTTHTHTHHTTHTHTTHHTHTHHHHTHTTHHTTHTTHTTHTHHHHHHTTTTTTHHHTTHTHHHHTTTHTTHHHTTHTHHTTTHHTHHTTTHTHHTHHHTHHTTHHH"
+
+flips5 = "HHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTT"
+
+flips6 = "TTHTTTHTTTTTTTHTHTHTHTTHTTHTHHTHHTTTHHTHTTTHTHHTHHHTHTTHHTHHTTHTHTTTTHTHTTTHHTTTTTTTTHTHHTTHTTTTTTHTHTHTHTTTHTTHHTTHTTTHHTTTHTTHTTTTHTTTTHHTTTHTHTHHHTTTTTTHTHHTTTTTTTTTTTTHHHTTTHHHTTTHTTTHTHTTHTTTTTHT"
+  
+# you can use the function below to split the above sequences in vectors of flips
+split = function(str) strsplit(str, split="")[[1]]
+
+longestRun = function(x,target = 'H'){
+    max(0,with(rle(x), lengths[values==target]))
+}
+
+MCN = 10000
+mc.run1 = rep(0,MCN)
+v = split(flips1)
+for(i in 1:MCN){
+  mc.run1[i] = longestRun(sample(v));
+}
+longestRun(v)
+mean(mc.run1>=1)
+
+v2 = split(flips2)
+mc.run2 = rep(0,MCN)
+for(i in 1:MCN){
+  mc.run2[i] = longestRun(sample(v2));
+}
+longestRun(v2)
+mean(mc.run2>=3)
+
+v3 = split(flips3)
+mc.run3 = rep(0,MCN)
+for(i in 1:MCN){
+  mc.run3[i] = longestRun(sample(v3));
+}
+longestRun(v3)
+mean(mc.run3>6)
+
+v4 = split(flips4)
+mc.run4 = rep(0,MCN)
+for(i in 1:MCN){
+  mc.run4[i] = longestRun(sample(v4));
+}
+longestRun(v4)
+mean(mc.run4>=7)
+
+
+v5 = split(flips5)
+mc.run5 = rep(0,MCN)
+for(i in 1:MCN){
+  mc.run5[i] = longestRun(sample(v5));
+}
+longestRun(v5)
+mean(mc.run5>=10)
+
+v6 = split(flips6)
+mc.run6 = rep(0,MCN)
+for(i in 1:MCN){
+  mc.run6[i] = longestRun(sample(v6));
+}
+longestRun(v6)
+mean(mc.run6>=3)
+
+hist(mc.run1)
+hist(mc.run2)
+hist(mc.run3)
+hist(mc.run4)
+hist(mc.run5)
+hist(mc.run6)
+
+```
+flip5 is ruled out by common sense, almost impossible to flip this many heads or tails in a row.
+flip1 is also ruled out by common sense, this pattern is almost impossible to generate.
+flip6 is also ruled out because there are too many consecutive sequence of heads and tails. 
+flips4 is also ruled out due to containing a sequence 9 consecutive tails in a row, which is deemed unlikely. 
+Out of all sequence, flip2 and flip3 are most likely to be randomly generated from independent flips of a fair coin but flip2's bar graph shows that the longest run value should be around 6-7 but upon calculation, we found that it's 3. Therefore, in the end, the sequence that is most likely tobe randomly generated from independent flips of a fair coin is flip3. 

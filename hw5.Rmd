@@ -1,0 +1,345 @@
+---
+title: "Homework 5"
+output: html_document
+author: Wai Zin Linn
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+```
+
+Each part of each question will be 5pts, there are 10 parts, so 50pts total. <br/>
+
+
+## 1. Interpreting logistic regression <small>15pts</small>
+
+Suppose we collect data for a group of students in a statistics class with independent variables $X_{1}=\text{hours studied}$, $X_{2}=\text{GPA}$, and binary response variable
+$$
+Y= \begin{cases} 1 &\mbox{ if student received an A} \\
+  0 &\mbox{ otherwise. }
+  \end{cases}
+$$
+Suppose that we fit a logistic regression model to the data, predicting $Y$ from $X_1$ and $X_2$ (and an intercept term) and produce estimated coefficients $\hat{\beta}_{0}=-6, \hat{\beta}_{1}=0.05, \hat{\beta}_{2}=1$.
+
+### Part a) Logistic regression and probability
+
+According to our fitted model, what is the probability that a student receives an A if they study for $40$ hours and have a GPA of $3.5$?
+
+```{r}
+linear_predictor = -6 + (0.05 * 40) + (3.5 * 1)
+1 / (1 + exp(-linear_predictor))
+```
+
+The probability that a student with 40 hours of study and a GPA of 3.5 receives an A is approximately 0.3775.
+
+### Part b) Interpreting coefficients
+According to our fitted model, an additional hour spent studying is associated with *how much* of an increase in the log odds of receiving an A?
+
+According to our fitted model, an additional hour spent studying is associated with a 0.05 increase in the log odds of receiving an A. This means that for every additional hour that a student studies, the odds of them receiving an A increase by a factor of 1.05.
+
+
+```{r}
+
+#TODO: code for calculation goes here
+
+```
+
+### Part c) "Inverting" logistic regression probabilities
+According to our fitted model, how many hours would the student in Part (a) need to study to have a $50\%$ chance of getting an A in the class?
+That is, keeping GPA fixed at $3.5$, how many hours of study are needed so that the probability of an A is $50\%$?
+If you aren't up for the math, feel free to find an approximate solution via guess-and-check in R.
+
+***
+
+According to our fitted model, the student would need to study 50 hours to get 50% chance of getting an A in the class.
+
+***
+
+<br/>
+
+## 2. `mtcars` one more time <small>10pts</small>
+
+Let's take yet another look at the `mtcars` data set.
+Recall that the columns of this data set are:
+```{r}
+names(mtcars)
+```
+
+The `am` column encodes whether a car is automatic (`0`) or manual (`1`).
+Let's build a model to predict whether a car is manual or automatic.
+
+### Part a) Fitting/interpreting a model
+
+Fit a logistic regression model to regress `am` against the `drat` and `disp` (and an intercept term).
+
+```{r}
+fitted_model = glm(am ~ 1 + drat + disp, data=mtcars, family = binomial())
+summary(fitted_model)
+```
+
+Which coefficients (if any) are statistically significantly different from zero at the $\alpha=0.05$ level?
+Interpret the meaning of the estimated coefficient(s) that is/are statistically significantly different from zero.
+
+***
+
+The p-value for the coefficient estimate of drat is 0.0315, which is less than 0.05. Therefore, we can conclude that the coefficient for drat is statistically significantly different from zero at the alpha=0.05 level, and the variable drat has a significant effect on the response variable am. Holding all other variables constant, for each unit increase in the drat variable, the log-odds of the car being manual versus automatic increases by 4.88, and this effect is statistically significant at the $\alpha=0.05$ level. Therefore, based on the logistic regression model, we can interpret that holding all other variables constant, for each unit increase in the drat (rear axis ratio), the log-odds of the car being manual increases by 4.88. 
+
+***
+
+### Part b) Modifying/assessing the model
+
+Choose one of the statistically significant predictors above and re-fit a model using *only* that variable (and an intercept) to predict `am`.
+We'll see how to compare the quality of this model to the one from Part (a) when we talk about cross-validation (CV) in upcoming lectures.
+For now, compare the estimated coefficient of this variable in both models.
+Is there a sizable difference?
+
+Yes there is a sizable difference.
+
+Does anything else notable change about the model?
+
+Yes, the AIC value has also decreased which means that the second model best fit the data. The p-value for drat vairable has also gotten significantly smaller which means that 
+
+```{r}
+
+fitted_model2 = glm(am ~ drat, data=mtcars, family = binomial())
+summary(fitted_model2)
+
+```
+
+Choose one of the statistically significant predictors above.
+Use `ggplot2` to plot `am` as a function of this predictor, and overlay a curve describing the logistic regression output when using *only* this predictor to predict `am` (i.e., the model from Part c above).
+
+```{r}
+library(ggplot2)
+
+ggplot(mtcars, aes(x = drat, y = am)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), formula = y ~ x, se = FALSE, color = "red")
+
+```
+
+
+<br/>
+
+## 3. Guided k-fold CV exercise <small>15pts</small>
+
+In this exercise, we will guide you through an exercise where you are asked to use k-fold cross validation to evaluate the performance of several models.
+
+For this exercise we will use the "Swiss Fertility and Socioeconomic Indicators (1888)" dataset from the `datasets` package, which is loaded below. (To view the help page, run `?datasets::swiss` in your console). We will be using `Fertility` as our response variable.
+
+```{r}
+swiss = datasets::swiss
+```
+
+
+### Part a) Understanding/visualizing data
+
+Read the help page and briefly "introduce" this dataset. Specifically, explain where the data comes from, what variables it contains, and why should people care about the dataset.
+
+Produce one or some visualizations of the data. Do your best here to try to use your plots to help your viewer best understand the structure and patterns of this dataset. Choose your plots carefully and briefly explain what each plot tells you about the data.
+
+The Swiss Fertility and Socioeconomic Indicators (1888) dataset comes from an observational study conducted in the late 19th century on the relationship between fertility rates and socioeconomic indicators in Switzerland. It contains data on 47 Swiss cantons, with 6 socioeconomic variables and one response variable (fertility).
+
+The variables in the dataset are:
+
+- Fertility (response variable)
+- Agriculture
+- Examination
+- Education
+- Catholic
+- Infant.Mortality
+
+People might be interested in this dataset because it provides insights into the relationship between socioeconomic factors and fertility rates, which can have important implications for public policy and family planning initiatives.
+
+```{r}
+ggplot(swiss, aes(x = Education, y = Fertility)) +
+  geom_point() +
+  labs(title = "Fertility by Education", x = "Education", y = "Fertility")
+```
+I chose to compare education against fertility. According to the scatterplot, it shows that people with higher eduction level (indicated by greater value) tend to have fewer fertility. 
+
+### Part b) Starting with basic lm
+
+Compare a model with all predictors with no interactions with 2 other models of YOUR choice. Fit all 3 models, show their summary outputs, and briefly comment on which one you think might perform the best when used for future predictions and why.
+
+```{r}
+# Model with all predictors and no interactions
+mod_all <- lm(Fertility ~ ., data = swiss)
+
+# Model 1
+mod1 <- lm(Fertility ~ Agriculture + Examination + Education + Catholic, data = swiss)
+
+# Model 2
+mod2 <- lm(Fertility ~ Agriculture + Examination + Catholic + Agriculture:Catholic + Examination:Catholic, data = swiss)
+
+# Show summary outputs
+summary(mod_all)
+summary(mod1)
+summary(mod2)
+```
+
+I believe the model with all predictors perform the best when used for future prediction because it has a higher adjusted R-squared value, indicating that it explains a greater proportion of the variance in the response variable. It also has smallest F-statics p-val out of all the models so there is a strong evidence that at least one of the predictors in the model is significantly related to the response variable, and the overall model is a good fit for the data.
+
+### Part c) Estimating MSE using CV
+
+Now, we are going to actually estimate the MSE of each model with K-fold cross validation. First we're going to set a seed and import the `caret` package (it should be already installed since it's a prerequisite for many other packages, but if it's not for some reason, you can install it with `install.packages("caret")`)
+
+```{r}
+set.seed(1)
+library(caret)
+```
+
+Next, use the following chunk, which already has `method` set to `lm`, `data` set to the `swiss` data set, and validation method set to use 5-fold CV, to estimate the MSE of each of your models. All you need to do is add in a formula for your model and repeat for all 3 models you have.
+
+```{r,error=T}
+
+# Model 1
+model1 = train(Fertility ~ ., 
+               method = "lm", data = swiss, 
+               trControl = trainControl(method = "cv", number = 5))
+print(model1)
+cat("RMSE for Model 1:", model1$results$RMSE, "\n")
+cat("MSE for Model 1:", (model1$results$RMSE)^2, "\n")
+
+# Model 2
+model2 = train(Fertility ~ Agriculture + Examination + Education + Catholic, 
+               method = "lm", data = swiss, 
+               trControl = trainControl(method = "cv", number = 5))
+print(model2)
+cat("RMSE for Model 2:", model2$results$RMSE, "\n")
+cat("MSE for Model 2:", (model2$results$RMSE)^2, "\n")
+
+# Model 3
+
+model3 = train(Fertility ~ Agriculture + Examination + Catholic + Agriculture:Catholic + Examination:Catholic, 
+               method = "lm", data = swiss, 
+               trControl = trainControl(method = "cv", number = 5))
+print(model3)
+cat("RMSE for Model 3:", model3$results$RMSE, "\n")
+cat("MSE for Model 3:", (model3$results$RMSE)^2, "\n")
+```
+
+Once you have your models fitted, use `print( )` to show the summary statistics for each model. Report the RMSE for each model, which is the square root of the MSE. Which of these models performs the best? Which performed the worst? Do these results agree with your expectations?
+
+Model 1 perform the best so it does agree with my expectation. Model 3 perform the worst out of 3 models. 
+
+Bonus: repeat the above step, using `trControl = trainControl(method="repeatedcv", number=5, repeats=3)` which repeats each CV analysis 3times and averages out each run to get a more stable estimate of the MSE. Compare the results with the unrepeated MSE estimates. How do they compare?
+
+```{r}
+
+# Model 1
+model1 = train(Fertility ~ ., 
+               method = "lm", data = swiss, 
+               trControl = trainControl(method = "repeatedcv", number = 5, repeats = 3))
+print(model1)
+cat("RMSE for Model 1:", model1$results$RMSE, "\n")
+cat("MSE for Model 1:", (model1$results$RMSE)^2, "\n")
+
+# Model 2
+model2 = train(Fertility ~ Agriculture + Examination + Education + Catholic, 
+               method = "lm", data = swiss, 
+               trControl = trainControl(method = "repeatedcv", number = 5,  repeats = 3))
+print(model2)
+cat("RMSE for Model 2:", model2$results$RMSE, "\n")
+cat("MSE for Model 2:", (model2$results$RMSE)^2, "\n")
+
+# Model 3
+
+model3 = train(Fertility ~ Agriculture + Examination + Catholic + Agriculture:Catholic + Examination:Catholic, 
+               method = "lm", data = swiss, 
+               trControl = trainControl(method = "repeatedcv", number = 5, repeats = 3))
+print(model3)
+cat("RMSE for Model 3:", model3$results$RMSE, "\n")
+cat("MSE for Model 3:", (model3$results$RMSE)^2, "\n")
+
+```
+<br/>
+
+Compared to repeated MSE esimates, the model 1 unrepeated MSE estimates is bigger (59.85 compared to 57). For model 2 and 3, the unrepeated MSE estimates are smaller than  repeated MSE esimates. 
+
+## 5. Variable selection with `Carseats` <small>10pts</small>
+
+This question should be answered using the `Carseats` dataset from the `ISLR` package. If you do not have it, make sure to install it.
+
+```{r}
+library(ISLR)
+
+Carseats = ISLR::Carseats
+
+# you should read the help page by running ?Carseats
+# we can also peek at the data frame before using it
+str(Carseats)
+head(Carseats)
+```
+
+
+### Part a) Visualizing/fitting
+
+First, make some visualizations of the dataset to help set the stage for the rest of the analysis. Try to pick plots to show that are interesting informative.
+
+```{r}
+# Scatter plot of Sales vs. CompPrice
+ggplot(Carseats, aes(x = CompPrice, y = Sales)) +
+  geom_point() +
+  labs(x = "CompPrice", y = "Sales")
+
+# Scatter plot of Sales vs. Income
+ggplot(Carseats, aes(x = Income, y = Sales)) +
+  geom_point() +
+  labs(x = "Income", y = "Sales")
+
+# Scatter plot of Sales vs. Advertising
+ggplot(Carseats, aes(x = Advertising, y = Sales)) +
+  geom_point() +
+  labs(x = "Advertising", y = "Sales")
+
+ggplot(Carseats, aes(x = Education, y = Sales)) +
+  geom_point() +
+  labs(x = "Education", y = "Sales")
+```
+
+Using some variable selection method (stepwise, LASSO, ridge, or just manually comparing a preselected of models using their MSEs), choose a set of predictors to use to predict `Sales`. Try to find the best model that you can that explains the data well and doesn't have useless predictors. Explain the choices you made and show the final model.
+
+```{r}
+library(glmnet)
+
+x = model.matrix(Sales~.,Carseats)[,-1]
+y = Carseats$Sales
+
+# fit lasso using default lambda values, alpha=1 adds LASSO penalty to RSS
+lm.lasso = glmnet(x,y,alpha=1)
+
+# use CV to choose which lambda gives lowest MSE
+cv.out = cv.glmnet(x,y,alpha=1)
+lambda.best = cv.out$lambda.min
+lambda.best
+
+coef(lm.lasso, s = lambda.best)
+```
+```{r}
+model_fit <- lm(Sales ~ CompPrice + Income + Advertising + Price + ShelveLoc + Age , data = Carseats)
+
+summary(model_fit)
+```
+
+I used Lasso regression to find the coefficients that might be significant in predicting sales. All of the coefficients are not equal to zero, which means that the corresponding predictors are important for predicting Sales. However, population's coefficient estimate is very small almost close to 0 so we can negate that. As for Education, Urban and US coefficient, I tried fitting but its p-value is greater than 0.05 so it's not significant in predicting Sales. Therefore, I removed those coefficients. 
+
+### Part b) Interpreting/assessing model
+
+According to your chosen model, Which predictors appear to be the most important or significant in predicting sales? Provide an interpretation of each coefficient in your model. Be careful: some of the variables in the model are qualitative!
+
+I would say CompPrice, Income, Advertising, Price, ShelveLoc, and Age are all significants predictors for sales. For a one-unit increase in competitor’s price, the predicted sales increased by 0.09 units sales (in thousands), holding all other variables constant.This indicates that the company's car seats are considered more attractive than the competitor's when the competitor's prices are higher. Holding all other variables constant, for a one unit (in thousands of dollars) increase in the community income level, the sales increase by 0.015785 units (in thousands). This suggests that the company is most likely to sell car seats when there is increase in income level (in thousands of dollars) at community. Holding all other variables constant, for a one-unit increase in the advertising budget (in thousands of dollars), the sales increase by 0.115903 units (in thousands). This implies that advertising is an effective way to increase sales for the company. Holding all other variables constant, for a one-unit increase in the company's child car seat price, the sales decrease by 0.095319 units (in thousands). This indicates that customers are sensitive to the price of the car seats, and the company should consider adjusting its prices to maximize sales. Holding all other variables constant, having a good quality of the shelving location for the car seats at each site results in an increase in sales of 4.835675 units (in thousands). Likewise, holding other variables constant, having a medium quality of the shelving location for the car seats at each site results in an increase in sales of 1.951993 units (in thousands). This also suggests that having a good and medium quality shelving location for the car seats is important for sales. Lastly, holding all other variables constant, for a one-unit increase in the average age of the local population, the sales decrease by 0.046128 units (in thousands). This indicates that the company's car seats are more attractive to customers in younger age groups.
+
+Estimate the out of sample MSE of your model and check any assumptions you made during your model fitting process. Discuss any potential model violations. How satisfied are you with your final model?
+
+```{r}
+train <- sample(nrow(Carseats), nrow(Carseats) * 0.7)
+train_data <- Carseats[train, ]
+test_data <- Carseats[-train, ]
+fit <- lm(Sales ~ CompPrice + Income + Advertising + Price + ShelveLoc + Age, data = train_data)
+pred <- predict(fit, newdata = test_data)
+mse <- mean((pred - test_data$Sales)^2)
+mse
+```
+
+The out of sample MSE of my model is 1.106. The MSE looks pretty decent however, we have to note that the dataset may have some underlying non-linear relationships or interactions that are not captured by the linear model. Therefore, we may want to consider more complex models or non-linear transformations of the variables to improve the model performance.

@@ -1,0 +1,212 @@
+---
+title: "Homework 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+
+## Problem 1 <small>(2pts each, 8pts total)</small>
+
+Here are a few probability exercises to get you warmed up.
+
+a. Find the variance of a fair d20 die (i.e. 20-sided die with numbers 1,2,...,20). You may use R if you like.
+b. Suppose you have an uneven 6-sided die where the numbers 1-5 are equally likely to occur, and the expected value of the entire die is 4. What is the probability of getting a 6?
+   (Hint: Let $x$ represent the probability of getting a 6, and represent the probability of the other numbers algebraically. Then derive an expression for the expected value, let it equal 4, and solve. You can go back and check your work by plugging the result back into your original expressions and verify it works with R.)
+c. Give **two examples** of pairs of events that are mutually exclusive and explain why for each.
+d. Give **two examples** of pairs of events that are independent and explain why for each.
+
+```{r}
+# a
+x <- 1:20
+mean_val = mean(x)
+var = sum((x-mean_val)^2)/length(x)
+var
+```
+b. 1/3
+
+c. Tossing a coin and getting both tail and head. This is because a coin can only get tail or head when rolled. So getting both tail and head at same time is not possible. 
+Rolling a dice and getting 1 and 6. This is because we can only get a number between 1-6 when we rolled a dice. Getting two numbers with a single dice is not possible.
+
+d. The probability of getting 1 when rolled a dice given I have drank a coke. Drinking a coke doesn't has any effect on the probability of getting 1 when rolling a dice. So two events would be independent. 
+Probability of riding a bike to class given I wear my favorite shirt. Wearing a favorite shirt doesn't have anything to do with the probability of riding a bike to class. I can even take a walk instead of riding a bike. Since both events don't influence the chances of other event happening, both events are independent.
+
+## Problem 2 <small>(2pts each, 12pts total)</small>
+
+For each of the following scenarios, decide what random variable may be appropriate to use as a model, and explain your reasoning as well as any assumptions you make.
+
+a. The number of patients in an experimental drug trial that respond to treatment.
+b. The number of Teslas you see on your way to school in the morning.
+c. What the second hand reads on the clock when you wake up from a long nap (approximately).
+d. How many people you need to swipe right on Tinder before you get a match.
+e. The number of shoes of each size in a shoe store (approximately).
+f. Whether the Eagles win the Superbowl this year.
+
+
+1. Binomial. There are two outcomes. The patients either respond to treatment or not and we care about patient that respond to treatment. It cannot be Bernoulli because it's dealing with multiple trials of single event. 
+
+2. Poisson. We care about the events that happen per unit time. So the time in this case would be "way to school in morning" and the target we are measuring is number of Teslas. 
+
+3. Uniform. This event can happen in equal probability because the clock can reach any of the second hand.
+
+4. Geometric. This takes account for number of times we need to do before we achieve something we desire. In this case, number of people we swipe right before we get a match. 
+
+5. Normal. This would follow a bell shaped curve (standardized normal distribution) where there would be a peak at a certain value with spread across various range of other numbers. This is because the shoe size of human is spread out across the distribution since there are various size of feet. So certain percentage of people would one size and another would other side. 
+
+6. Bernoulli. There are two outcomes, whether they win or lose and deal with a single trial of an event. 
+
+
+## Problem 3 <small>(2pts each, 10pts total)</small>
+
+For this next problem, we're going to empirically demonstrate the law of large numbers by simulating $N$ observations of a random variable, and show the convergence of the sample mean to the theoretical mean. Consider a poisson variable $X$ with $\lambda=13$. It should hopefully be clear from the definition of the poisson that $E(X)=\lambda=13$.
+
+a. Start by creating a data frame with 2 columns: a column named `n` that goes from 1, 2, ..., up to 1000; and a second column named `x` which is just 1000 repeated observations of a poisson random variable with `lambda=13`.
+b. Next, create a third column named `xbar` that computes the "mean-thus-far" up to each row. E.g. if the first 3 values of `x` are 3, 1, 8, then the first 3 values of `xbar` should be 3, 2, 4, since 3=3, (3+1)/2=2, and (3+1+8)/3=4.
+   (Hint: use the `cumsum()` function to take the cumulative sum of the `x` column, then divide by the number of observations so far)
+c. Make a line plot showing xbar vs n. Add a red line at the theoretical mean. Comment on what you observe in the plot. Is this what you were expecting? (Don't forget to add proper labels/titles).
+d. Now, increase the number of simulations to 100,000 and remake the plot, this time with a log-scale x-axis to better show the rate of convergence across the entire axis. Comment again on the output. Explain if this does or does not empirically agree with the law of large numbers.
+e. Repeat the above steps with a **different** random variable. You can copy your entire code chunk so far and just make the necessary modifications. Comment on this output too and whether or not it also agrees with your expectations. Make sure you CLEARLY define what the random variable you're using and clearly state what the expected value is (you may look this up on the internet if it's a new random variable we covered this week that we did not give the expectation formula for in class).
+
+```{r}
+df = data.frame(n=seq(1,1000),x=rpois(1000,lambda=13))
+xbar1 = cumsum(df$x)/df$n
+df <- cbind(df, xbar1)
+plot(df$n,df$xbar,type="l",xlab="n",ylab="xbar (mean)",main="Poisson random Variable for 1000 samples: xbar vs n")
+abline(13,0,col="red")
+
+df_n = data.frame(n=seq(1,100000),x=rpois(100000,lambda=13))
+xbar = cumsum(df_n$x)/df_n$n
+df2 <- cbind(df_n, xbar)
+plot(log(df2$n),df2$xbar,type="l",xlab="n",ylab="xbar (mean)",main="Poisson random Variable for 100000 samples: xbar vs n")
+abline(13,0,col="red")
+
+df_last = data.frame(n=seq(1,100000),x=rnorm(100000))
+xbar_n = cumsum(df_last$x)/df_last$n
+df3 <- cbind(df_last, xbar_n)
+plot(log(df3$n),df3$xbar_n,type="l",xlab="n",ylab="xbar (mean)",main="Normal random Vairable: xbar vs n")
+abline(0,0,col="red")
+```
+
+c. Yes, the graph is what I am expecting. I expected the mean values to reach closer to theoretical mean as sample size grew. 
+
+d. Yes, it follows the law of large number. As the sample size increases, the xbar values approach towards  the theoretical mean. 
+
+e. Normal random variable with mean = 0, sd = 1 also follow the law of large number because as we increase n (the sample size), the mean values got closer and closer to the theoretical mean of 0. 
+
+<br/><br/>
+***The last 2 problems are intended to be done after we begin the Monte Carlo lectures, but you are welcome to get a head start on them if you feel motivated to do so.***
+<br/><br/>
+
+
+
+## Problem 4: Generalized [birthday problem](https://en.wikipedia.org/wiki/Birthday_problem) <small>(12pts)</small>
+
+The birthday problem asks for the probability that in a group of $n$ people, **at least 2 people** will share the same birthday. This is a standard question in introductory probability. In this problem, we will generalize the birthday problem to a much more difficult question and then solve it using a Monte Carlo approach.
+
+__Question:__ in $n$ people, what is the probability that at least $k$ people have the same birthday?
+
+Write a function `birthday(n, k, m)` that takes 3 arguments:
+
+ - $n$ is the number of people in your sample
+    - for example, if `n=50` is used, we are asking "in 50 people, what is the probability that..."
+ - $k$ is minimum number of people that you asking for the probability of sharing a birthday
+    - for example if `k=4` is used, we asking "...what is the probability that at least 4 people share the same birthday?
+ - $m$ is the number of replicates in your simulation (default 1000)
+    - for example, if `m=1000` is used, your function should run 1000 replicates
+
+`birthday(n, k, m)` should return a Monte Carlo estimate, based on `m` Monte Carlo replicates, of the probability that among `n` people, at least `k` of them have the same birthday.
+
+__Notes:__
+
+ - You may assume there are 365 possible dates (no leap years)
+ - You may assume birthdays are uniformly distributed across the calendar
+    - this is actually not true; see [this](https://www.panix.com/~murphy/bday.html), or [this](https://fivethirtyeight.com/features/lots-of-parents-dont-want-their-kids-to-be-born-on-leap-day/), but we're going to make the simplifying assumption.
+ - You may assume the people are sampled [i.i.d.](https://en.wikipedia.org/wiki/Independent_and_identically_distributed_random_variables).
+
+__Hints:__
+
+1. There's no need to use actual dates in the simulation process. Numbers can represent dates and are easier to generate and manipulate in `R`. In particular, we recommend using the `sample()` function with the `x`, `size`, and `replace` arguments set appropriately. See the help page `?sample` for details.
+2. Given a vector of numbers, you can easily find duplicates by using the `table()` function. This will produce a named vector showing how many of each value there are. For example, running `table(c(1, 3, 5, 5, 7, 9, 9, 9))` will show you there is one 1, one 3, two 5s, one 7, and three 9s.
+3. In your function, you will need to use a `for` loop to repeat the simulation `m` times. You will also need a variable outside your `for` loop to keep track of how many replicates satisfy that the number of people with same birthdays $\geq k$.
+4. If your function is running correctly, then `birthday(n=23,k=2)`, `birthday(n=87,k=3)` and `birthday(n=188,k=4)` should all be approximately $50\%$.
+5. If your function is very slow, make sure you're paying attention to hint 1 and using numbers appropriately to represent dates in a memory efficient way. You may also consider using the [`dqsample` function](https://rdrr.io/cran/dqrng/man/dqsample.html) from the `dqrng` package which is about 2-3 times faster than the normal `sample` function, or the [`Table` function](https://rdrr.io/cran/Rfast/man/Table.html) from the `Rfast` package which is about 4-5 times faster than the normal `table()` function (especially if you set `names=FALSE`).
+
+```{r}
+# Reminder: m = 1000 sets the default value of m to be 1000
+
+gen_birthdays <- function( numppl ) {
+   return(sample(365, size=numppl, replace=TRUE ));
+}
+
+run_bday_expt <- function(numPPl,minPpl) {
+   bdays <- gen_birthdays(numPPl);
+   return( max(table(bdays)) >= minPpl );
+}
+
+birthday = function(n, k, m=1000) {
+  # TODO: code goes here
+  counterTrue = 0
+  for( i in 1:m) {
+    if(run_bday_expt(n,k) ) {
+      counterTrue <- counterTrue + 1;
+    }
+  }
+  return(counterTrue/m);
+}
+
+birthday(n=23,k=2);
+birthday(n=87,k=3);
+birthday(n=188,k=4);
+```
+
+This class currently has 285 enrolled students (across two sections). Use your function to estimate the approximate probability that at least $5$ students have the same birthdays? Use as many replicates can you can comfortably run on your computer.
+
+```{r}
+birthday(n=285,k=5)
+```
+
+## Problem 5: Simulating a random variable <small>(8pts)</small>
+
+Define a random variable $X$ with density
+$$
+f_X(t) = \begin{cases}
+      2t &\mbox{ if } 0 \le t \le 1 \\
+      0 &\mbox{ otherwise. }
+      \end{cases}
+$$
+
+
+```{r, fig.width=5.7, fig.height=4}
+# here we define a *vectorized* function to evaluate the density of X
+pdf_x = function(x) {
+  # ifelse is like a function version of an if statement.
+  # We use it here to ensure that pdf_x can operate directly on vectors.
+  return(ifelse(0<=x & x<=1 , 2*x , 0 ))
+}
+
+# showing the PDF in a plot
+ggplot() + geom_function(fun=pdf_x, n=10001) + 
+  coord_fixed(ratio=.5) + theme_minimal() + 
+  xlim(c(-1,2)) + ylim(-1,3) + labs(x="x", y="f(x)")
+```
+
+This means that the cumulative distribution function is $$F_X(t)=\int_0^tf_X(u)du=t^2$$
+for $0 \le t \le 1$, and $F_X(t) = 1$ for $t \ge 1$.
+Write a function `rx(n)` (like `rbinom`) to sample from this random variable, where `n` is the size of the sample to be drawn.
+Then, use your function to draw sample of size 1000 and plot a histogram of the output to verify the results make sense.
+
+```{r}
+# complete the function
+rx = function(n) {
+  sqrt(runif(n,min=0,max=1))
+  # TODO: code goes here
+}
+
+# The histogram should look like the PDF we plotted above.
+# Uncomment the following line of code and check it looks correct
+hist(rx(1000))
+```
+

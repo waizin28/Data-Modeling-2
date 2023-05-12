@@ -1,0 +1,230 @@
+---
+title: "Homework 3"
+output: html_document
+author: "Wai Zin Linn"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Problem 1: The infamous mule kick data <small>20pts</small>
+
+The file `mule_kicks.csv`, available for download (here)[https://kdlevin-uwstat.github.io/STAT340-Fall2021/hw/03/mule_kicks.csv], contains a simplified version of a very famous data set. The data consists of the number of soldiers killed by being kicked by mules or horses each year in a number of different companies in the Prussian army near the end of the 19th century.
+
+This may seem at first to be a very silly thing to collect data about, but it is a very interesting thing to look at if you are interested in rare events. Deaths by horse kick were rare events that occurred independently of one another, and thus it is precisely the kind of process that we might expect to obey a Poisson distribution.
+
+Download the data and read it into R by running
+
+```{r}
+download.file('https://kdlevin-uwstat.github.io/STAT340-Fall2021/hw/03/mule_kicks.csv', destfile='mule_kicks.csv')
+mule_kicks = read.csv('mule_kicks.csv', header=TRUE)
+
+head(mule_kicks)
+```
+
+`mule_kicks` contains a single column, called `deaths`.
+Each entry is the number of soldiers killed in one corps of the Prussian army in one year.
+There are 14 corps in the data set, studied over 20 years, for a total of 280 death counts.
+
+
+### Part a: estimating the Poisson rate <small>5pts</small>
+
+Assuming that the mule kicks data follows a Poisson distribution, produce a point estimate for the rate parameter $\lambda$.
+There are no strictly right or wrong answers, here, though there are certainly better or worse ones.
+
+```{r}
+#TODO: estimate the rate parameter.
+lambda_hat <- colMeans(mule_kicks) # TODO: write code store your estimate in lambdahat.
+lambda_hat
+```
+
+
+### Part b: constructing a CI <small>10pts</small>
+
+Using everything you know (Monte Carlo, CLT, etc.), construct a confidence interval for the rate parameter $\lambda$.
+Explain in reasonable detail what you are doing and why you are constructing the confidence interval in this way (a few sentences is fine!).
+
+```{r}
+sd_lambda_hat <- sqrt(lambda_hat / nrow(mule_kicks))
+qnorm(c(0.025, 0.975), mean=lambda_hat, sd=sd_lambda_hat)
+```
+
+***
+
+First, we calculate the sample mean lambda_hat using the colMeans() function, which computes the mean of each column in a matrix. Here, mule_kicks is a matrix where each row represents a day and each column represents a mule, with the number of kicks on that day and for that mule.
+
+Next, we estimate the standard error of the sample mean using the formula sqrt(lambda_hat/nrow(mule_kicks)), where nrow(mule_kicks) gives the number of days sampled. This is an estimate of the standard deviation of the sampling distribution of the mean.
+
+Finally, we construct a 95% confidence interval for the mean number of kicks per day using the qnorm() function. This function calculates the inverse of the normal cumulative distribution function. We use it to find the values z1 and z2 such that the area under the normal curve between mean - z1 * sd_lambda_hat and mean + z2 * sd_lambda_hat is 0.95. The resulting interval, mean +/- (z1 * sd_lambda_hat, z2 * sd_lambda_hat), gives us a range of plausible values for the true mean number of kicks per day, with a 95% degree of confidence.
+
+This confidence interval is constructed assuming that the sampling distribution of the mean is approximately normal. This is based on the central limit theorem, which states that the sampling distribution of the mean tends towards a normal distribution as the sample size increases, regardless of the distribution of the underlying data. The qnorm() function is used to construct the interval assuming normality. If the sample size is small or the underlying distribution is not well-approximated by a normal distribution.
+
+***
+
+
+### Part c: assessing a model <small>5pts</small>
+
+Here's a slightly more open-ended question.
+We *assumed* that the data followed a Poisson distribution.
+This may or may not be a reasonable assumption.
+Use any and all tools that you know to assess (either with code or simply in words) how reasonable or unreasonable this assumption is.
+
+Once again, there are no strictly right or wrong answers here.
+Explain and defend your decisions and thought processes in a reasonable way and you will receive full credit.
+
+***
+
+TODO: Code, plots and/or explanation go here.
+
+```{r}
+n <- 80; # Sample size of our data
+
+data <- rpois(n=n, lambda=lambda_hat);
+
+hist(data); 
+```
+***
+
+It's safe to assume that the data follows Poisson distribution because from the calculation I did above, it shows that about 95% of the time, we would get 0.6020018-0.7979982 deaths. This is also reflected in the histogram I have plotted where most of the value are clumped between 0 and 1 death. 
+
+***
+
+
+## Problem 2: Closing the loop <small>10 pts</small>
+
+In our discussion of the Universal Widgets of Madison company from lecture, we said that we were interested in two questions:
+
+1. Estimating the probability $p$ that a widget is functional.
+2. How many widgets should be in a batch to ensure that (with high probability) a batch ships with at least $5$ functional widgets in it?
+
+We discussed question (1) at length in lecture.
+What about question (2)?
+Our client wants to know how many widgets should ship in each batch so as to ensure that the probability there are at least $5$ functional widgets in a batch is at least $0.99$.
+
+Now, suppose that we have observed data and estimated $p$ to be $0.82$.
+
+Use everything you know so far in this course to give a recommendation to the client.
+Be sure to explain clearly what you are doing and why.
+If there are any steps, assumptions, etc., that you are not 100% pleased with, feel free to point them out.
+
+__Note:__ there are at least two "obvious" ways to solve this problem. One is based on using Monte Carlo (i.e., assume $p=0.82$ is the truth, and try generating batches of different sizes, etc.).
+The other uses direct computation of probabilities, using basic facts about Binomial RVs.
+Neither of these is necessarily better than the other, and you do not need to use both approaches to receive full credit.
+Indeed, you are free to try doing something else entirely, if you wish.
+Just explain clearly what you are doing and why!
+
+```{r}
+p <- 0.82  # estimated probability of functional widget
+k <- 5  # number of functional widgets
+prob <- 0.99  # desired probability of at least 5 functional widgets
+
+n <- 0
+while (pbinom(k-1, n, p, lower.tail = FALSE) < prob) {
+  n <- n + 1
+}
+n
+```
+
+***
+
+We first sets the estimated probability of a functional widget p, the desired probability of at least 5 functional widgets in a batch prob, and the number of functional widgets needed k. Then, the code uses a while loop to increment the batch size n until the probability of having at least k successes in a binomial distribution with parameters n and p is greater than or equal to prob. The pbinom function calculates the cumulative probability of having less than k successes in a sample of size n with probability p, so we need to take the complement by setting lower.tail = FALSE and compare it to the desired probability prob. So we ended up needing at least 10 gadgets to guarantee at least 5 functional widgets in a batch is at least 0.99.
+
+***
+
+
+
+## Problem 3: Permutation testing for correlatedness <small>20pts</small>
+
+We mentioned in lecture that independence and uncorrelatedness are usually things that we have to assume of our data, but that there are, in some settings, ways to detect the presence or absence of dependence.
+This problem will give an example of that, using our old friend the permutation test.
+
+Suppose that we observe pairs $(X_i, Y_i)$ where $X_i, Y_i \in \mathbb{R}$ for each $i=1,2,\dots,n$, with all $n$ pairs being independent of one another.
+That is, $(X_i,Y_i)$ is independent of $(X_j,Y_j)$ for $i \neq j$.
+
+Most typically, we think of these as predictor-response pairs.
+For example, the $X_i$ might represent years of education and $Y_i$ might represent income at age 30, and we want to predict $Y$ from a given value of $X$.
+These kinds of problems are probably familiar to you from your discussion of regression in STAT240, and that's a problem we'll return to in a couple of weeks.
+For now, though, let's forget about trying to estimate a regression coefficient or predict anything and instead just try to assess whether or not the $X$s and $Y$s are correlated at all.
+
+If $X_i$ and $Y_i$ are completely uncorrelated over all $i=1,2,\dots,n$, then, much like in permutation testing, it shouldn't matter what order the $Y$s appear with respect to the $X$s.
+That is, we should be able to shuffle the responses (i.e., the $Y_i$ terms) and not much should change in terms of how the data "looks".
+In particular, the correlation between the $X$s and $Y$s should not change much on average.
+
+
+### Part a: reading data, plotting and the eyeball test <small>10pts</small>
+
+The following code reads the horsepower (`hp`) and miles per gallon (`mpg`) columns from the famous `mtcars` data set (see `?mtcars` for background or a refresher).
+
+```{r}
+hp <- mtcars$hp
+mpg <- mtcars$mpg
+```
+
+Create a scatter plot of the data and state whether or not you think the variables `hp` and `mpg` are correlated, based on the plot (and explain what in the plot makes you think this).
+There is no need to do any statistics here-- just look at the data and describe what you see and what it suggests to you.
+
+```{r}
+
+plot(hp, mpg, xlab = "Horsepower", ylab = "Miles per gallon", main = "Horsepower VS miles per gallon")
+abline(lm(mpg ~ hp))
+
+```
+
+***
+
+I would say there is some correlation between horsepower and miles per gallon used because as the horsepower increase, I am seeing less miles per gallon. This make sense because higher horsepower typically use more fuel. 
+
+***
+
+
+### Part b: testing for correlation <small>10pts</small>
+
+Use a permutation test to assess whether or not the vectors `hp` and `mpg` are correlated.
+Pick a reasonable level $\alpha$ for your test and accept or reject the null hypothesis (letting $H$ be the RV representing horsepower and $M$ be the RV representing miles per gallon)
+
+$$
+H_0 : \operatorname{ Corr }( H, M ) = 0
+$$
+
+accordingly.
+Be sure to clearly explain your reasoning and give a basic explanation of the procedure you are following.
+Imagine that you are writing for a fellow STAT340 student, rather than for your professor or TA.
+
+__Hint:__ remember, the basic permutation recipe is to shuffle the data and then compute the test statistic on the shuffled data.
+In this case, the "right" test statistic is clearly... (you'll have to decide, but there are one or two pretty obvious choices), and shuffling the data just corresponds to permuting the entries of either `hp` or `mpg`.
+
+```{r}
+N <- 10000
+data <- data.frame(hp = hp, mpg = mpg)
+
+observed_cor <- cor(data$hp, data$mpg)
+
+perm_cor <- numeric(length = N)
+for (i in 1:N) {
+ shuf_mpg <- sample(data$mpg)
+ perm_cor[i] <- cor(data$hp, shuf_mpg)
+}
+
+p_value_Cor <- mean(abs(perm_cor)>=abs(observed_cor))
+p_value_Cor*2
+```
+
+***
+In a permutation test for correlation, we are interested in determining whether there is a significant association between two variables (in this case, hp and mpg). We do this by comparing the observed correlation coefficient between the two variables to the distribution of correlation coefficients that we would expect to see if there were no association between the two variables.
+
+To obtain this distribution, we randomly permute one of the variables (in this case, mpg) and recalculate the correlation coefficient between hp and the permuted mpg variable. We repeat this process a large number of times (in this case, N = 10000) to obtain a distribution of correlation coefficients that we would expect to see under the null hypothesis of no association.
+
+Once we have this distribution of permuted correlation coefficients, we calculate the p-value as the proportion of permuted correlation coefficients that are as extreme or more extreme than the observed correlation coefficient. The null hypothesis is that there is no correlation between hp and mpg, so we consider correlation coefficients that are either positive or negative and have magnitudes as extreme or more extreme than the observed correlation coefficient.
+
+Therefore, we calculate mean(abs(perm_corr) >= abs(obs_corr)) to obtain the proportion of permuted correlation coefficients that are as extreme or more extreme than the observed correlation coefficient in magnitude. Taking the absolute value of the correlation coefficients ensures that we consider both positive and negative correlations. Finally, taking the mean of the resulting logical vector gives us the proportion of permuted correlation coefficients that are as extreme or more extreme than the observed correlation coefficient.
+
+Since this is a two-sided test, we would need to multiply the obtained p-value by 2 to obtain the two-tailed p-value. This is because we are interested in the probability of observing a correlation coefficient as extreme or more extreme than the observed one, in either direction. If the resulting p-value is small enough, we reject the null hypothesis of no association and conclude that there is evidence of a significant association between hp and mpg. This would certainly be the case for the test I run since I got the p-value 0 which is less than significance level of 0.05. 
+
+***
